@@ -32,6 +32,8 @@ def search_faqs(query):
     client = SearchClient.create(ALGOLIA_APP_ID, ALGOLIA_API_KEY)
     index = client.init_index(ALGOLIA_INDEX_NAME)
     search_results = index.search(query)
+    if not search_results['hits']:
+        return pd.DataFrame()
     hits = pd.DataFrame(search_results['hits'])
     return hits.loc[:, ['Topic', 'Question', 'Answer']]
 
@@ -44,13 +46,16 @@ def display_df(value, df):
     else:
          df = search_faqs(value)
 
-    grouped_faqs = df.groupby('Topic')
-    
-    for topic, group in grouped_faqs:
-        st.subheader(f"{topic}")
+    if df.empty:
+        st.warning("No results found. Please try again")
+    else:
+        grouped_faqs = df.groupby('Topic')
+        
+        for topic, group in grouped_faqs:
+            st.subheader(f"{topic}")
 
-        for _, row in group.iterrows():
-            st.markdown(f"**{row['Question']}**  \n{row['Answer']}  \n")
+            for _, row in group.iterrows():
+                st.markdown(f"**{row['Question']}**  \n{row['Answer']}  \n")
 
 def main():
     st.title(st.secrets['config']['title'])
