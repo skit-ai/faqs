@@ -1,5 +1,4 @@
 import streamlit as st
-import yaml
 import gspread
 from algoliasearch.search_client import SearchClient
 from gspread_dataframe import get_as_dataframe
@@ -9,16 +8,13 @@ from st_keyup import st_keyup
 
 # Application Setup
 
-with open('config.yaml') as file:
-        config = yaml.safe_load(file)
-
 GOOGLE_SERVICE_ACCOUNT_FILE = st.secrets['GOOGLE_SERVICE_ACCOUNT_FILE']
-GOOGLE_SHEET_URL = config['google_sheet_url']
-GOOGLE_SHEET_NAME = config['google_sheet_name']
+GOOGLE_SHEET_URL = st.secrets['config']['google_sheet_url']
+GOOGLE_SHEET_NAME = st.secrets['config']['google_sheet_name']
 
 ALGOLIA_APP_ID = st.secrets['algolia']['ALGOLIA_APP_ID']
 ALGOLIA_API_KEY = st.secrets['algolia']['ALGOLIA_API_KEY']
-ALGOLIA_INDEX_NAME = config['algolia_index_name']
+ALGOLIA_INDEX_NAME = st.secrets['config']['algolia_index_name']
 
 # Read FAQs from Google Sheet
 @st.cache_resource(ttl=14400)  # Cache for 4 hours
@@ -58,7 +54,7 @@ def display_df(value, df):
             st.markdown(f"**{row['Question']}**  \n{row['Answer']}  \n")
 
 def main():
-    st.title(config['title'])
+    st.title(st.secrets['config']['title'])
 
     # Search bar
     value = st_keyup("Search Here", debounce=500)
