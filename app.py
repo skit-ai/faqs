@@ -8,7 +8,6 @@ from st_keyup import st_keyup
 
 # Application Setup
 
-GOOGLE_SERVICE_ACCOUNT_FILE = st.secrets['GOOGLE_SERVICE_ACCOUNT_FILE']
 GOOGLE_SHEET_URL = st.secrets['config']['google_sheet_url']
 GOOGLE_SHEET_NAME = st.secrets['config']['google_sheet_name']
 
@@ -19,8 +18,8 @@ ALGOLIA_INDEX_NAME = st.secrets['config']['algolia_index_name']
 # Read FAQs from Google Sheet
 @st.cache_resource(ttl=14400)  # Cache for 4 hours
 def read_faq_sheet(sheet_url, sheet_name):
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        GOOGLE_SERVICE_ACCOUNT_FILE, ['https://spreadsheets.google.com/feeds']
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+        st.secrets['google'], ['https://spreadsheets.google.com/feeds']
     )
     client = gspread.authorize(credentials)
     sheet = client.open_by_url(sheet_url).worksheet(sheet_name)
