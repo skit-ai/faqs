@@ -1,8 +1,11 @@
 import streamlit as st
 import yaml
 import gspread
+from algoliasearch.search_client import SearchClient
 from gspread_dataframe import get_as_dataframe
 from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
+from st_keyup import st_keyup
 
 # Application Setup
 
@@ -12,6 +15,10 @@ with open('config.yaml') as file:
 GOOGLE_SERVICE_ACCOUNT_FILE = st.secrets['GOOGLE_SERVICE_ACCOUNT_FILE']
 GOOGLE_SHEET_URL = config['google_sheet_url']
 GOOGLE_SHEET_NAME = config['google_sheet_name']
+
+ALGOLIA_APP_ID = st.secrets['algolia']['ALGOLIA_APP_ID']
+ALGOLIA_API_KEY = st.secrets['algolia']['ALGOLIA_API_KEY']
+ALGOLIA_INDEX_NAME = config['algolia_index_name']
 
 # Read FAQs from Google Sheet
 @st.cache_resource(ttl=14400)  # Cache for 4 hours
@@ -25,14 +32,39 @@ def read_faq_sheet(sheet_url, sheet_name):
     faq_df = faq_df.dropna(how='all')
     return faq_df
 
-st.title(config['title'])
+# Search FAQs using Algolia
+def search_faqs(query):
+    client = SearchClient.create(ALGOLIA_APP_ID, ALGOLIA_API_KEY)
+    index = client.init_index(ALGOLIA_INDEX_NAME)
+    search_results = index.search(query)
+    hits = pd.DataFrame(search_results['hits'])
+    return hits.loc[:, ['Topic', 'Question', 'Answer']]
 
-# Group FAQs by topic
-faq_df = read_faq_sheet(GOOGLE_SHEET_URL, GOOGLE_SHEET_NAME)
-grouped_faqs = faq_df.groupby('Topic')
+def display_df(value, df):
 
-for topic, group in grouped_faqs:
-    st.subheader(f"{topic}")
+    if not value:
+         df = read_faq_sheet(GOOGLE_SHEET_URL, GOOGLE_SHEET_NAME)
+    elif len(value)<3:
+         st.write("Please enter at least 3 characters to search")
+    else:
+         df = search_faqs(value)
 
-    for _, row in group.iterrows():
-        st.markdown(f"**{row['Question']}**  \n{row['Answer']}  \n")
+    grouped_faqs = df.groupby('Topic')
+    
+    for topic, group in grouped_faqs:
+        st.subheader(f"{topic}")
+
+        for _, row in group.iterrows():
+            st.markdown(f"**{row['Question']}**  \n{row['Answer']}  \n")
+
+def main():
+    st.title(config['title'])
+
+    # Search bar
+    value = st_keyup("Search Here", debounce=500)
+
+    # Group FAQs by topic
+    display_df(value, None)
+
+if __name__ == "__main__":
+    main()
